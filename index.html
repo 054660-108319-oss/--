@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>配色生成器</title>
+    <link rel="stylesheet" href="color-style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎨 配色生成器</h1>
+            <p>為您的設計項目快速生成和諧的色彩搭配</p>
+        </header>
+
+        <main>
+            <!-- 控制面板 -->
+            <div class="control-panel">
+                <div class="control-group">
+                    <label for="colorMode">配色模式</label>
+                    <select id="colorMode" class="mode-select">
+                        <option value="random">隨機</option>
+                        <option value="complementary">補色</option>
+                        <option value="analogous">相似色</option>
+                        <option value="triadic">三角形</option>
+                        <option value="tetradic">四邊形</option>
+                        <option value="monochromatic">單色系</option>
+                        <option value="shades">深淺變化</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="baseColor">基礎顏色</label>
+                    <input type="color" id="baseColor" value="#667eea" class="color-input">
+                </div>
+
+                <button id="generateBtn" class="generate-btn">🔄 生成配色</button>
+            </div>
+
+            <!-- 顏色卡片區域 -->
+            <div class="colors-grid" id="colorsGrid">
+                <!-- 動態生成顏色卡片 -->
+            </div>
+
+            <!-- 操作按鈕 -->
+            <div class="action-buttons">
+                <button id="exportBtn" class="export-btn">📋 複製所有顏色</button>
+                <button id="exportCssBtn" class="export-css-btn">💻 複製 CSS</button>
+            </div>
+
+            <!-- 預覽區域 -->
+            <div class="preview-section">
+                <h2>配色預覽</h2>
+                <div class="preview-container">
+                    <div id="previewArea" class="preview-area">
+                        <!-- 預覽內容會動態生成 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 顏色轉換工具 -->
+            <div class="converter-section">
+                <h2>顏色轉換工具</h2>
+                <div class="converter-area">
+                    <div class="converter-group">
+                        <label>HEX</label>
+                        <input type="text" id="hexInput" class="converter-input" placeholder="#667eea">
+                    </div>
+                    <div class="converter-group">
+                        <label>RGB</label>
+                        <input type="text" id="rgbInput" class="converter-input" placeholder="102, 126, 234">
+                    </div>
+                    <div class="converter-group">
+                        <label>HSL</label>
+                        <input type="text" id="hslInput" class="converter-input" placeholder="229, 60%, 66%">
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>快速生成專業配色方案</p>
+        </footer>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <script src="color-script.js"></script>
+</body>
+</html>
