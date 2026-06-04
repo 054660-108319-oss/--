@@ -1,12 +1,19 @@
-// 顏色工具函數
+// ==========================================================================\
+// 🎨 配色生成器核心邏輯演算法
+// ==========================================================================\
+
 class ColorUtils {
     // HEX 轉 RGB
     static hexToRgb(hex) {
-        // 支援 #FFF 和 #FFFFFF 兩種格式
-        if (hex.length === 4) {
-            hex = '#' + hex Quator[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+        // 確保去掉可能包含的 # 號以便處理長度
+        let cleanedHex = hex.replace('#', '');
+        
+        // 【已修正】支援 3 碼簡寫（例如 FFF -> FFFFFF）
+        if (cleanedHex.length === 3) {
+            cleanedHex = cleanedHex[0] + cleanedHex[0] + cleanedHex[1] + cleanedHex[1] + cleanedHex[2] + cleanedHex[2];
         }
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        
+        const result = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(cleanedHex);
         return result ? {
             r: parseInt(result[1], 16),
             g: parseInt(result[2], 16),
@@ -198,7 +205,10 @@ class ColorUtils {
     }
 }
 
-// DOM 元素
+// ==========================================================================\
+// 🌐 全域應用狀態與 DOM 元素抓取
+// ==========================================================================\
+
 const colorMode = document.getElementById('colorMode');
 const baseColor = document.getElementById('baseColor');
 const generateBtn = document.getElementById('generateBtn');
@@ -211,11 +221,14 @@ const rgbInput = document.getElementById('rgbInput');
 const hslInput = document.getElementById('hslInput');
 const toast = document.getElementById('toast');
 
-// 【Bug 1 修正】應用狀態變數必須宣告在全域，其他函數才讀得到
+// 確保這兩個狀態變數完全在全域，所有函數都讀得到
 let currentColors = [];
 let lockedColors = new Set();
 
-// 設置事件監聽器
+// ==========================================================================\
+// ⚡ 事件監聽器與主核心控制器
+// ==========================================================================\
+
 function setupEventListeners() {
     generateBtn.addEventListener('click', generateColors);
     colorMode.addEventListener('change', generateColors);
@@ -223,20 +236,24 @@ function setupEventListeners() {
     exportBtn.addEventListener('click', exportColors);
     exportCssBtn.addEventListener('click', exportCss);
 
-    // 顏色轉換工具 - HEX
+    // HEX 欄位即時變更
     hexInput.addEventListener('input', (e) => {
-        const hex = e.target.value;
+        let hex = e.target.value;
+        if (!hex.startsWith('#') && hex.length >= 3) {
+            hex = '#' + hex;
+        }
         if (/^#[0-9A-F]{6}$/i.test(hex) || /^#[0-9A-F]{3}$/i.test(hex)) {
             const rgb = ColorUtils.hexToRgb(hex);
             if (rgb) {
                 const hsl = ColorUtils.rgbToHsl(rgb.r, rgb.g, rgb.b);
                 rgbInput.value = `${rgb.r}, ${rgb.g}, ${rgb.b}`;
                 hslInput.value = `${hsl.h}, ${hsl.s}%, ${hsl.l}%`;
+                baseColor.value = ColorUtils.rgbToHex(rgb.r, rgb.g, rgb.b);
             }
         }
     });
 
-    // 顏色轉換工具 - RGB
+    // RGB 欄位即時變更
     rgbInput.addEventListener('input', (e) => {
         const values = e.target.value.split(',').map(v => parseInt(v.trim()));
         if (values.length === 3 && values.every(v => v >= 0 && v <= 255)) {
@@ -244,23 +261,25 @@ function setupEventListeners() {
             const hsl = ColorUtils.rgbToHsl(values[0], values[1], values[2]);
             hexInput.value = hex;
             hslInput.value = `${hsl.h}, ${hsl.s}%, ${hsl.l}%`;
+            baseColor.value = hex;
         }
     });
 
-    // 顏色轉換工具 - HSL
+    // HSL 欄位即時變更
     hslInput.addEventListener('input', (e) => {
         const cleaned = e.target.value.replace(/%/g, '');
         const values = cleaned.split(',').map(v => parseInt(v.trim()));
-        if (values.length === 3) {
+        if (values.length === 3 && !values.some(isNaN)) {
             const rgb = ColorUtils.hslToRgb(values[0], values[1], values[2]);
             const hex = ColorUtils.rgbToHex(rgb.r, rgb.g, rgb.b);
             hexInput.value = hex;
             rgbInput.value = `${rgb.r}, ${rgb.g}, ${rgb.b}`;
+            baseColor.value = hex;
         }
     });
 }
 
-// 生成配色
+// 生成配色邏輯
 function generateColors() {
     const mode = colorMode.value;
     const base = baseColor.value;
@@ -289,7 +308,7 @@ function generateColors() {
             colors = Array.from({ length: 5 }, () => ColorUtils.getRandomColor());
     }
 
-    // 保留鎖定的顏色
+    // 處理鎖定鎖定顏色
     const newColors = colors.map((color, index) => {
         if (lockedColors.has(index) && currentColors[index]) {
             return currentColors[index];
@@ -297,13 +316,22 @@ function generateColors() {
         return color;
     });
 
+    // 如果生成出來的顏色數量不夠（例如互補色只有2個），就用隨機補滿5個槽位
+    while (newColors.length < 5) {
+        newColors.push(ColorUtils.getRandomColor());
+    }
+    // 如果超過5個則切斷，維持畫面整齊
+    if (newColors.length > 5) {
+        newColors.length = 5;
+    }
+
     currentColors = newColors;
     renderColors();
     renderPreview();
     updateConverter();
 }
 
-// 渲染顏色卡片
+// 渲染前端網格卡片
 function renderColors() {
     colorsGrid.innerHTML = '';
 
@@ -315,6 +343,7 @@ function renderColors() {
         const rgb = ColorUtils.hexToRgb(color);
         const textColor = ColorUtils.getTextColor(color);
         const colorName = ColorUtils.getColorName(color);
+        const isLocked = lockedColors.has(index);
 
         card.innerHTML = `
             <div class="color-display" style="background-color: ${color}; color: ${textColor};">
@@ -325,15 +354,15 @@ function renderColors() {
                 <div class="color-rgb">RGB: ${rgb.r}, ${rgb.g}, ${rgb.b}</div>
                 <div class="color-name">${colorName}</div>
                 <div class="color-buttons">
-                    <button class="color-btn copy-btn" data-color="${color}">複製</button>
-                    <button class="color-btn lock-btn ${lockedColors.has(index) ? 'locked' : ''}" data-index="${index}">
-                        ${lockedColors.has(index) ? '🔒 鎖定' : '🔓 解鎖'}
+                    <button class="color-btn copy-btn">複製</button>
+                    <button class="color-btn lock-btn ${isLocked ? 'locked' : ''}">
+                        ${isLocked ? '🔒 鎖定' : '🔓 解鎖'}
                     </button>
                 </div>
             </div>
         `;
 
-        // 綁定動態生成按鈕的點擊事件
+        // 安全地綁定動態事件監聽器，揚棄舊式 HTML onclick 寫法
         card.querySelector('.copy-btn').addEventListener('click', () => copyColor(color, 'hex'));
         card.querySelector('.lock-btn').addEventListener('click', () => toggleLock(index));
 
@@ -341,7 +370,7 @@ function renderColors() {
     });
 }
 
-// 複製單一顏色
+// 複製到剪貼簿
 function copyColor(color, format) {
     let text = color;
 
@@ -368,14 +397,14 @@ function toggleLock(index) {
     renderColors();
 }
 
-// 導出所有顏色
+// 複製全部
 function exportColors() {
     const text = currentColors.map(color => color.toUpperCase()).join('\n');
     navigator.clipboard.writeText(text);
     showToast('已複製所有顏色代碼', 'success');
 }
 
-// 導出 CSS 變數
+// 複製 CSS :root 變數
 function exportCss() {
     let css = ':root {\n';
     currentColors.forEach((color, index) => {
@@ -387,7 +416,7 @@ function exportCss() {
     showToast('已複製 CSS 變量', 'success');
 }
 
-// 渲染預覽方塊
+// 底部下方的預覽方塊
 function renderPreview() {
     previewArea.innerHTML = '';
 
@@ -405,7 +434,7 @@ function renderPreview() {
     });
 }
 
-// 更新轉換工具輸入框
+// 自動將當前第 1 格顏色同步到下方轉換工具輸入框
 function updateConverter() {
     if (currentColors.length > 0) {
         const color = currentColors[0];
@@ -418,7 +447,7 @@ function updateConverter() {
     }
 }
 
-// 顯示提示消息
+// 吐司彈窗訊息
 function showToast(message, type = 'success') {
     toast.textContent = message;
     toast.className = `toast show ${type}`;
@@ -428,7 +457,7 @@ function showToast(message, type = 'success') {
     }, 2000);
 }
 
-// 【Bug 2 修正】初始化放在檔案最底部，確保所有宣告都已載入完畢
+// 確保網頁 DOM 樹完全長好後才執行初始化，100% 避免白畫面
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     generateColors();
